@@ -89,7 +89,7 @@
             async getlistPlants() {
                 try {
                     let response = await fetch(
-                        "https://pvz-2-api.vercel.app/api/plants"
+                        "https://cors-anywhere.herokuapp.com/https://pvz-2-api.vercel.app/api/plants"
                     );
 
                     if (!response.ok) {
@@ -101,7 +101,7 @@
                     // Menyimpan data tanaman dalam cache
                     for (const plantName of plantNames) {
                         let plantResponse = await fetch(
-                            `https://pvz-2-api.vercel.app/api/plants/${plantName}`
+                            `https://cors-anywhere.herokuapp.com/https://pvz-2-api.vercel.app/api/plants/${plantName}`
                         );
                         if (!plantResponse.ok) {
                             throw new Error(`Failed to fetch plant details for ${plantName}`);
