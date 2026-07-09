@@ -9,28 +9,39 @@
                 plantsMenu: false,
                 zombiesMenu: false,
                 areasMenu: false,
-                plantList: [], // Tanaman yang sedang ditampilkan
-                plantListCache: [], // Cache data tanaman
+                plantList: [],
+                plantListCache: [],
                 plantsLoaded: false,
+                zombieList: [],
+                zombieListCache: [],
+                zombiesLoaded: false,
+                areaList: [],
+                areaListCache: [],
+                areasLoaded: false,
                 loading: false
             };
         },
         computed: {
             totalItems() {
-                return this.plantList.length;
+                if (this.plantsMenu) return this.plantList.length;
+                if (this.zombiesMenu) return this.zombieList.length;
+                if (this.areasMenu) return this.areaList.length;
+                return 0;
             },
             totalPages() {
                 return Math.ceil(this.totalItems / this.itemsPerPage);
             },
             paginatedList() {
-                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-                const endIndex = startIndex + this.itemsPerPage;
-                return this.plantList.slice(startIndex, endIndex);
+                const start = (this.currentPage - 1) * this.itemsPerPage;
+                const end = start + this.itemsPerPage;
+                if (this.plantsMenu) return this.plantList.slice(start, end);
+                if (this.zombiesMenu) return this.zombieList.slice(start, end);
+                if (this.areasMenu) return this.areaList.slice(start, end);
+                return [];
             },
         },
         methods: {
             async pageChanged(page) {
-                await new Promise((resolve) => setTimeout(resolve, 1000));
                 this.currentPage = page;
             },
             async Sound() {
@@ -44,38 +55,47 @@
                 }
                 audio.volume = 0.5;
             },
-            plantsDetail() {
+            async plantsDetail() {
                 const audio = this.$refs.clickAudio;
                 audio.play();
                 audio.playbackRate = 1.5;
                 this.mainMenu = false;
                 this.plantsMenu = true;
-                this.loading = true;
-
+                this.currentPage = 1;
                 if (!this.plantsLoaded) {
-                    this.getlistPlants();
+                    await this.getlistPlants();
                     this.plantsLoaded = true;
                 } else {
                     this.plantList = this.plantListCache;
                 }
-
-                setTimeout(() => {
-                    this.loading = false;
-                }, 6000);
             },
-            zombiesDetail() {
+            async zombiesDetail() {
                 const audio = this.$refs.clickAudio;
                 audio.play();
                 audio.playbackRate = 1.5;
                 this.mainMenu = false;
                 this.zombiesMenu = true;
+                this.currentPage = 1;
+                if (!this.zombiesLoaded) {
+                    await this.getlistZombies();
+                    this.zombiesLoaded = true;
+                } else {
+                    this.zombieList = this.zombieListCache;
+                }
             },
-            areasDetail() {
+            async areasDetail() {
                 const audio = this.$refs.clickAudio;
                 audio.play();
                 audio.playbackRate = 1.5;
                 this.mainMenu = false;
                 this.areasMenu = true;
+                this.currentPage = 1;
+                if (!this.areasLoaded) {
+                    await this.getlistAreas();
+                    this.areasLoaded = true;
+                } else {
+                    this.areaList = this.areaListCache;
+                }
             },
             back() {
                 const audio = this.$refs.clickAudio;
@@ -88,47 +108,75 @@
             },
             async getlistPlants() {
                 try {
-                    let response = await fetch(
-                        "https://cors-anywhere.herokuapp.com/https://pvz-2-api.vercel.app/api/plants"
-                    );
-
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch plant names");
-                    }
-
+                    this.loading = true;
+                    let response = await fetch("/api/plants");
+                    if (!response.ok) throw new Error("Failed to fetch plant names");
                     let plantNames = await response.json();
 
-                    // Menyimpan data tanaman dalam cache
-                    for (const plantName of plantNames) {
-                        let plantResponse = await fetch(
-                            `https://cors-anywhere.herokuapp.com/https://pvz-2-api.vercel.app/api/plants/${plantName}`
-                        );
-                        if (!plantResponse.ok) {
-                            throw new Error(`Failed to fetch plant details for ${plantName}`);
-                        }
-                        let plantData = await plantResponse.json();
+                    let details = await Promise.all(
+                        plantNames.map(name => fetch(`/api/plants/${name}`).then(r => r.json()))
+                    );
 
-                        let sunCost = plantData["Sun cost"] !== undefined ? plantData["Sun cost"] : plantData.cost;
-                        this.plantListCache.push({
-                            name: plantName,
-                            image: plantData.image,
-                            sunCost: sunCost
-                        });
-                    }
-
-                    // Gunakan data tanaman yang baru diambil dari API
-                    this.plantList = [...this
-                        .plantListCache
-                    ]; // Gunakan spread operator untuk menghindari referensi langsung ke cache
+                    this.plantListCache = details.map((data, i) => ({
+                        name: plantNames[i],
+                        image: data.image,
+                        sunCost: data["Sun cost"] !== undefined ? data["Sun cost"] : data.cost
+                    }));
+                    this.plantList = [...this.plantListCache];
                 } catch (error) {
                     console.error('Error fetching plants:', error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            async getlistZombies() {
+                try {
+                    this.loading = true;
+                    let response = await fetch("/api/zombies");
+                    if (!response.ok) throw new Error("Failed to fetch zombie names");
+                    let zombieNames = await response.json();
+
+                    let details = await Promise.all(
+                        zombieNames.map(name => fetch(`/api/zombies/${name}`).then(r => r.json()))
+                    );
+
+                    this.zombieListCache = details.map((data, i) => ({
+                        name: zombieNames[i],
+                        image: data.image,
+                        toughness: data.toughness || '',
+                        speed: data.speed || ''
+                    }));
+                    this.zombieList = [...this.zombieListCache];
+                } catch (error) {
+                    console.error('Error fetching zombies:', error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+            async getlistAreas() {
+                try {
+                    this.loading = true;
+                    let response = await fetch("/api/areas");
+                    if (!response.ok) throw new Error("Failed to fetch area names");
+                    let areaNames = await response.json();
+
+                    let details = await Promise.all(
+                        areaNames.map(name =>
+                            fetch(`/api/areas/${name}`).then(r => r.ok ? r.json() : null).catch(() => null)
+                        )
+                    );
+
+                    this.areaListCache = details.map((data, i) => ({
+                        name: areaNames[i],
+                        image: data ? data.image : null
+                    }));
+                    this.areaList = [...this.areaListCache];
+                } catch (error) {
+                    console.error('Error fetching areas:', error);
+                } finally {
+                    this.loading = false;
                 }
             }
-
-        },
-        mounted() {
-            // Data tanaman dimuat pada saat aplikasi dimulai
-            // this.getlistPlants()
         },
     };
 </script>
@@ -189,7 +237,7 @@
             </div>
             <div class="title mt-3 mb-5">
                 <h2 class="text-center">Plants</h2>
-                <h4 class="mt-4 mb-3 text-center" v-if="loading">Wait...</h4>
+                <h4 class="mt-4 mb-3 text-center" v-if="loading">Loading...</h4>
             </div>
 
             <div class="col-md-3 mb-3" v-for="plant in paginatedList" :key="plant.name">
@@ -242,6 +290,45 @@
             </div>
             <div class="title mt-3 mb-5">
                 <h2 class="text-center">Zombies</h2>
+                <h4 class="mt-4 mb-3 text-center" v-if="loading">Loading...</h4>
+            </div>
+
+            <div class="col-md-3 mb-3" v-for="zombie in paginatedList" :key="zombie.name">
+                <div class="card text-white" style="background-color: darkslategray;">
+                    <img style="width: 70px;" class="card-img-top d-block mx-auto mt-2"
+                        :src="'https://pvz-2-api.vercel.app' + zombie.image" :alt="zombie.name" />
+                    <div class="card-body">
+                        <h5 class="card-title text-center">{{ zombie.name }}</h5>
+                        <p class="text-info text-center mb-1">{{ zombie.toughness }}</p>
+                        <p class="text-secondary text-center mb-0">{{ zombie.speed }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="col-md-12 mt-3">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
+                            <button class="page-link" @click="pageChanged(currentPage - 1)"
+                                :disabled="currentPage === 1">
+                                Previous
+                            </button>
+                        </li>
+                        <li class="page-item" v-for="page in totalPages" :key="page"
+                            :class="{ 'active': page === currentPage }">
+                            <button class="page-link" @click="pageChanged(page)">
+                                {{ page }}
+                            </button>
+                        </li>
+                        <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
+                            <button class="page-link" @click="pageChanged(currentPage + 1)"
+                                :disabled="currentPage === totalPages">
+                                Next
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
 
@@ -253,6 +340,43 @@
             </div>
             <div class="title mt-3 mb-5">
                 <h2 class="text-center">Areas</h2>
+                <h4 class="mt-4 mb-3 text-center" v-if="loading">Loading...</h4>
+            </div>
+
+            <div class="col-md-3 mb-3" v-for="area in paginatedList" :key="area.name">
+                <div class="card text-white" style="background-color: greenyellow;">
+                    <img v-if="area.image" style="width: 70px;" class="card-img-top d-block mx-auto mt-2"
+                        :src="'https://pvz-2-api.vercel.app' + area.image" :alt="area.name" />
+                    <div class="card-body">
+                        <h5 class="card-title text-center text-dark">{{ area.name }}</h5>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="col-md-12 mt-3">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
+                            <button class="page-link" @click="pageChanged(currentPage - 1)"
+                                :disabled="currentPage === 1">
+                                Previous
+                            </button>
+                        </li>
+                        <li class="page-item" v-for="page in totalPages" :key="page"
+                            :class="{ 'active': page === currentPage }">
+                            <button class="page-link" @click="pageChanged(page)">
+                                {{ page }}
+                            </button>
+                        </li>
+                        <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
+                            <button class="page-link" @click="pageChanged(currentPage + 1)"
+                                :disabled="currentPage === totalPages">
+                                Next
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>

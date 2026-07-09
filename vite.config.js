@@ -12,5 +12,13 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://pvz-2-api.vercel.app',
+        changeOrigin: true
+      }
+    }
   }
 })
