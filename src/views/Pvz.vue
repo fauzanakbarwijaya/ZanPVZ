@@ -218,7 +218,7 @@
             </div>
             <div class="col-md-4 mb-3">
                 <div class="card" style="background-color: greenyellow">
-                    <img class="card-img-top d-block mx-auto mt-2" src="../assets/images/area.png" alt="Title"
+                    <img class="card-img-top d-block mx-auto mt-2" src="../assets/images/image.png" alt="Title"
                         style="width: 100px;" />
                     <div class="card-body">
                         <h4 class="card-title text-white mb-3 text-center">Areas</h4>
