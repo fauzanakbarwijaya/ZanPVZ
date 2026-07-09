@@ -109,12 +109,12 @@
             async getlistPlants() {
                 try {
                     this.loading = true;
-                    let response = await fetch("/api/plants");
+                    let response = await fetch("https://pvz-2-api.vercel.app/api/plants");
                     if (!response.ok) throw new Error("Failed to fetch plant names");
                     let plantNames = await response.json();
 
                     let details = await Promise.all(
-                        plantNames.map(name => fetch(`/api/plants/${name}`).then(r => r.json()))
+                        plantNames.map(name => fetch(`https://pvz-2-api.vercel.app/api/plants/${name}`).then(r => r.json()))
                     );
 
                     this.plantListCache = details.map((data, i) => ({
@@ -132,12 +132,12 @@
             async getlistZombies() {
                 try {
                     this.loading = true;
-                    let response = await fetch("/api/zombies");
+                    let response = await fetch("https://pvz-2-api.vercel.app/api/zombies");
                     if (!response.ok) throw new Error("Failed to fetch zombie names");
                     let zombieNames = await response.json();
 
                     let details = await Promise.all(
-                        zombieNames.map(name => fetch(`/api/zombies/${name}`).then(r => r.json()))
+                        zombieNames.map(name => fetch(`https://pvz-2-api.vercel.app/api/zombies/${name}`).then(r => r.json()))
                     );
 
                     this.zombieListCache = details.map((data, i) => ({
@@ -156,13 +156,13 @@
             async getlistAreas() {
                 try {
                     this.loading = true;
-                    let response = await fetch("/api/areas");
+                    let response = await fetch("https://pvz-2-api.vercel.app/api/areas");
                     if (!response.ok) throw new Error("Failed to fetch area names");
                     let areaNames = await response.json();
 
                     let details = await Promise.all(
                         areaNames.map(name =>
-                            fetch(`/api/areas/${name}`).then(r => r.ok ? r.json() : null).catch(() => null)
+                            fetch(`https://pvz-2-api.vercel.app/api/areas/${name}`).then(r => r.ok ? r.json() : null).catch(() => null)
                         )
                     );
 
@@ -345,8 +345,6 @@
 
             <div class="col-md-3 mb-3" v-for="area in paginatedList" :key="area.name">
                 <div class="card text-white" style="background-color: greenyellow;">
-                    <img v-if="area.image" style="width: 70px;" class="card-img-top d-block mx-auto mt-2"
-                        :src="'https://pvz-2-api.vercel.app' + area.image" :alt="area.name" />
                     <div class="card-body">
                         <h5 class="card-title text-center text-dark">{{ area.name }}</h5>
                     </div>
